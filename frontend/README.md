@@ -55,3 +55,11 @@ react-image-crop: For implementing the image cropping functionality.
 * ESLint: For code linting and maintaining code quality.
 
 By overcoming these challenges and utilizing these technologies, we've created a robust, user-friendly frontend for food label analysis.
+
+## Features
+
+- Image upload from device
+- Camera capture for both mobile and desktop devices
+- Image cropping functionality
+- Responsive design for various screen sizes
+- Automated deployment to GitHub Pages
