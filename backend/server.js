@@ -2,16 +2,15 @@ require('dotenv').config();
 
 const express = require('express');
 const multer = require('multer');
-const AWS = require('aws-sdk');
 const cors = require('cors');
 const axios = require('axios');
-
+const { TextractClient, AnalyzeDocumentCommand } = require('@aws-sdk/client-textract');
 const app = express();
 app.use(cors()); // Enable CORS for frontend-backend communication
 const upload = multer(); // For handling file uploads in memory
 
-AWS.config.update({ region: process.env.AWS_REGION || 'us-east-1' }); // Update to your AWS region
-const textract = new AWS.Textract();
+// AWS.config.update({ region: process.env.AWS_REGION || 'us-east-1' }); // Update to your AWS region
+const textractClient = new TextractClient({ region: 'us-west-1' });
 
 const apiKey = process.env.OPENAI_API_KEY;
 
@@ -32,17 +31,24 @@ function extractTextFromTextract(textractResponse) {
 app.post('/analyze-label', upload.single('image'), async (req, res) => {
     try {
         const fileBuffer = req.file.buffer;
+
         const params = {
             Document: {
                 Bytes: fileBuffer,
             },
             FeatureTypes: ['TABLES', 'FORMS'],
         };
-        const textractResult = await textract.analyzeDocument(params).promise();
+
+        // Use AWS SDK v3 to analyze the document
+        const command = new AnalyzeDocumentCommand(params);
+        const textractResult = await textractClient.send(command);
+
+        // Extract text from the Textract result
         const extractedText = extractTextFromTextract(textractResult);
         console.log('Extracted Text:', extractedText);
+
         const gptPrompt = `
-        Extract relevant nutritional information and ingredient insights from the following text:
+        Analyze the following text for nutritional information or ingredient insights:
         ${extractedText}
 
         Scoring Metric:
@@ -50,11 +56,19 @@ app.post('/analyze-label', upload.single('image'), async (req, res) => {
         - +10 points for low sugar (≤5g per serving).
         - -10 points for high sodium (>150mg per serving).
         - +10 points for high dietary fiber (>3g per serving).
+        - -10 points for high saturated fat (>1g per serving).
+        - +10 points if the product uses only natural ingredients (no artificial additives).
+        - -10 points if the ingredients include high-fructose corn syrup, trans fats, or excessive preservatives.
+
+        If only ingredients are provided:
+        - Identify potential harmful ingredients and their impact.
+        - Highlight positive aspects like natural or organic ingredients.
+        - Provide a health score (0-100) based on the above rules.
 
         Analysis Tasks:
         1. Provide a health score (0-100).
-        2. Highlight positive aspects (e.g., low sugar, high fiber).
-        3. Highlight negative aspects (e.g., high sodium, high saturated fat).
+        2. Highlight positive aspects (e.g., low sugar, high fiber, natural ingredients).
+        3. Highlight negative aspects (e.g., high sodium, trans fats, artificial additives).
         4. Suggest healthier alternatives if applicable.
         `;
 
@@ -63,12 +77,12 @@ app.post('/analyze-label', upload.single('image'), async (req, res) => {
             {
                 model: 'gpt-3.5-turbo',
                 messages: [
-                    { role: 'system', content: 'You are a helpful assistant that provides nutritional analysis.' },
+                    { role: 'system', content: 'You are a precise and consistent assistant that performs nutritional and ingredient analysis with detailed, unbiased scoring.' },
                     { role: 'user', content: gptPrompt }
                 ],
-                max_tokens: 500,
-                temperature: 0,
-                top_p:1,
+                max_tokens: 700,
+                temperature: 0.2,
+                top_p: 1,
             },
             {
                 headers: {
@@ -80,10 +94,10 @@ app.post('/analyze-label', upload.single('image'), async (req, res) => {
 
         const gptData = gptResponse.data.choices[0].message.content.trim();
         console.log('GPT-3.5 Turbo Response:', gptData);
-        res.json({ success: true, analysis: gptData });
+        res.status(200).json({ success: true, analysis: gptData });
     } catch (error) {
         console.error('Error analyzing image or calling GPT:', error.response?.data || error.message);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
     }
 });
 

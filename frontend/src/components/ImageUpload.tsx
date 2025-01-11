@@ -51,28 +51,13 @@ export default function ImageUpload() {
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const image = e.currentTarget as HTMLImageElement;
-    const aspectRatio = image.naturalWidth / image.naturalHeight;
-  
-    // Set crop dimensions dynamically based on the image's aspect ratio
-    if (aspectRatio > 1) {
-      // For wide images, keep height smaller and adjust width
-      setCrop({
-        unit: 'px',
-        width: image.naturalWidth * 0.8,
-        height: image.naturalHeight * 0.5,
-        x: (image.naturalWidth * 0.2) / 2,
-        y: (image.naturalHeight * 0.5) / 2,
-      });
-    } else {
-      // For tall images, keep width smaller and adjust height
-      setCrop({
-        unit: 'px',
-        width: image.naturalWidth * 0.5,
-        height: image.naturalHeight * 0.8,
-        x: (image.naturalWidth * 0.5) / 2,
-        y: (image.naturalHeight * 0.2) / 2,
-      });
-    }
+    setCrop({
+      unit: 'px',
+      width: image.naturalWidth * 0.8, // Default to 80% of width
+      height: image.naturalHeight * 0.8, // Default to 80% of height
+      x: image.naturalWidth * 0.1, // Center the crop
+      y: image.naturalHeight * 0.1,
+    });
   }, []);
 
   const getCroppedImg = useCallback((image: HTMLImageElement, crop: PixelCrop) => {
@@ -118,41 +103,34 @@ export default function ImageUpload() {
   const handleSubmit = async () => {
     if (croppedImage) {
       try {
-        setLoading(true); // Start loading
+        setLoading(true);
         const formData = new FormData();
         const response = await fetch(croppedImage);
         const blob = await response.blob();
-
+  
         formData.append('image', blob);
-
+  
         const result = await fetch('http://localhost:3001/analyze-label', {
           method: 'POST',
           body: formData,
         });
-
+        console.log('Response:', result);
         const json = await result.json();
-        console.log('Response from backend:', json);
-
-        if (json.success && json.data.Blocks.length > 0) {
-          const extractedText = json.data.Blocks
-            .filter((block: { BlockType: string; Text?: string }) => block.BlockType === 'LINE')
-            .map((block: { Text?: string }) => block.Text)
-            .join('\n');
-          console.log('Extracted Text:', extractedText);
-          setAnalysisResult(extractedText);
-        } else if (json.success) {
-          alert('No text could be extracted from the image.');
+        console.log('Parsed Response:', json);
+        if (result.ok && json.success) {
+          setAnalysisResult(json.analysis);
         } else {
-          alert('Failed to analyze the label.');
+          throw new Error(json.message || 'Failed to analyze the label.');
         }
       } catch (error) {
         console.error('Error during analysis:', error);
         alert('An error occurred while analyzing the label.');
       } finally {
-        setLoading(false); // Stop loading
+        setLoading(false);
       }
     }
   };
+  
   
   const reset = () => {
     setSelectedImage(null);
@@ -161,6 +139,95 @@ export default function ImageUpload() {
     setIsUploaded(false);
     setShowCamera(false);
   };
+  
+  function AnalysisDisplay({ analysisResult }: { analysisResult: string | null }) {
+    if (!analysisResult) return null;
+  
+    // Split lines and clean up any empty or extra spaces
+    const lines = analysisResult.split('\n').map((line) => line.trim()).filter((line) => line !== '');
+  
+    // Extract health score
+    const healthScore = lines.find((line) => line.startsWith('1. Health Score:'))?.replace('1. Health Score:', '').trim() || "N/A";
+  
+    // Extract indices for sections
+    const positiveIndex = lines.findIndex((line) => line.startsWith('2. Positive Aspects:'));
+    const negativeIndex = lines.findIndex((line) => line.startsWith('3. Negative Aspects:'));
+    const alternativesIndex = lines.findIndex((line) => line.startsWith('4. Suggestions for Healthier Alternatives:'));
+  
+    // Extract section contents safely
+    const positiveAspects = positiveIndex !== -1 && negativeIndex !== -1
+      ? lines.slice(positiveIndex + 1, negativeIndex)
+      : [];
+    const negativeAspects = negativeIndex !== -1 && alternativesIndex !== -1
+      ? lines.slice(negativeIndex + 1, alternativesIndex)
+      : [];
+    const healthierAlternatives = alternativesIndex !== -1
+      ? lines.slice(alternativesIndex + 1)
+      : [];
+  
+    return (
+      <div className="bg-white shadow-lg rounded-lg p-6 mt-6 border border-gray-300">
+        {/* Health Score */}
+        <div className="text-center mb-6">
+          <div className="text-xl font-bold text-gray-700">Health Score</div>
+          <div
+            className={`text-6xl font-extrabold ${
+              Number(healthScore) < 40
+                ? 'text-red-600' // Red for scores <40
+                : Number(healthScore) <= 70
+                ? 'text-yellow-500' // Yellow for scores between 40-70
+                : 'text-green-600' // Green for scores >70
+            }`}
+          >
+            {healthScore}
+          </div>
+        </div>
+  
+        {/* Positive Aspects */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">What's Good?</h3>
+          {positiveAspects.length > 0 ? (
+            <ul className="list-disc ml-6 text-green-600">
+              {positiveAspects.map((aspect, index) => (
+                <li key={index}>{aspect}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 italic">No positive aspects identified.</p>
+          )}
+        </div>
+  
+        {/* Negative Aspects */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">What's Bad?</h3>
+          {negativeAspects.length > 0 ? (
+            <ul className="list-disc ml-6 text-red-600">
+              {negativeAspects.map((aspect, index) => (
+                <li key={index}>{aspect}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 italic">No negative aspects identified.</p>
+          )}
+        </div>
+  
+        {/* Healthier Alternatives */}
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800">Healthier Alternatives</h3>
+          {healthierAlternatives.length > 0 ? (
+            <ul className="list-disc ml-6 text-blue-600">
+              {healthierAlternatives.map((alternative, index) => (
+                <li key={index}>{alternative}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-500 italic">No healthier alternatives provided.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+  
   
 
   return (
@@ -214,7 +281,10 @@ export default function ImageUpload() {
                 crop={crop}
                 onChange={(c) => setCrop(c)}
                 onComplete={handleCropComplete}
-                aspect={1}
+                minWidth={10} 
+                minHeight={10} 
+                keepSelection={false} 
+                style={{ maxWidth: '100%' }} 
               >
                 <img
                   ref={imageRef}
@@ -235,12 +305,8 @@ export default function ImageUpload() {
         </>
       )}
 
-      {analysisResult && (
-        <div className="mt-4 p-4 bg-gray-100 border border-gray-300 rounded">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Extracted Analysis:</h3>
-          <pre className="whitespace-pre-wrap text-sm text-gray-700">{analysisResult}</pre>
-        </div>
-      )}
+      {analysisResult && <AnalysisDisplay analysisResult={analysisResult} />}
+
 
       {loading && (
         <div className="text-center text-gray-600">
@@ -248,18 +314,18 @@ export default function ImageUpload() {
         </div>
       )}
 
-      <button
-        onClick={handleSubmit}
-        className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-        disabled={!croppedImage || loading}
-      >
-        {loading ? 'Analyzing...' : 'Analyze Label'}
-      </button>
+    <button
+      onClick={handleSubmit}
+      className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+      disabled={!croppedImage || loading}
+    >
+      {loading ? 'Analyzing...' : 'Analyze Label'}
+    </button>
 
-      <button
-        onClick={reset}
-        className="mt-4 w-full bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-      >
+    <button
+      onClick={reset}
+      className="mt-4 w-full bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+    >
         Reset
       </button>
     </div>
