@@ -165,67 +165,82 @@ export default function ImageUpload() {
       ? lines.slice(alternativesIndex + 1)
       : [];
   
-    return (
-      <div className="bg-white shadow-lg rounded-lg p-6 mt-6 border border-gray-300">
-        {/* Health Score */}
-        <div className="text-center mb-6">
-          <div className="text-xl font-bold text-gray-700">Health Score</div>
-          <div
-            className={`text-6xl font-extrabold ${
-              Number(healthScore) < 40
-                ? 'text-red-600' // Red for scores <40
-                : Number(healthScore) <= 70
-                ? 'text-yellow-500' // Yellow for scores between 40-70
-                : 'text-green-600' // Green for scores >70
-            }`}
-          >
-            {healthScore}
+      return (
+        <div className="bg-white shadow-lg rounded-lg p-6 mt-6 border border-gray-300">
+          {/* Health Score */}
+          <div className="text-center mb-6">
+            <div className="text-xl font-bold text-gray-700">Health Score</div>
+            <div
+              className={`text-6xl font-extrabold ${
+                Number(healthScore) <= 40
+                  ? 'text-red-600' // Red for scores <=40
+                  : Number(healthScore) <= 70
+                  ? 'text-yellow-500' // Yellow for scores between 41-70
+                  : 'text-green-600' // Green for scores >70
+              }`}
+            >
+              {Number(healthScore) || 'N/A'}
+            </div>
+            <div className="text-sm text-gray-500 mt-2">
+              A higher score indicates better nutritional quality.
+            </div>
+          </div>
+      
+          {/* Content Sections */}
+          <div className="space-y-6">
+            {/* Positive Aspects */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">What's Good?</h3>
+              {positiveAspects.length > 0 ? (
+                <ul className="list-disc ml-6 text-green-600">
+                  {positiveAspects.map((aspect, index) => (
+                    <li key={index} className="flex items-center">
+                      <span className="mr-2">✔</span>
+                      {aspect}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 italic">No positive aspects identified.</p>
+              )}
+            </div>
+      
+            {/* Negative Aspects */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">What's Bad?</h3>
+              {negativeAspects.length > 0 ? (
+                <ul className="list-disc ml-6 text-red-600">
+                  {negativeAspects.map((aspect, index) => (
+                    <li key={index} className="flex items-center">
+                      <span className="mr-2">⚠</span>
+                      {aspect}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 italic">No negative aspects identified.</p>
+              )}
+            </div>
+      
+            {/* Healthier Alternatives */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">Healthier Alternatives</h3>
+              {healthierAlternatives.length > 0 ? (
+                <ul className="list-disc ml-6 text-blue-600">
+                  {healthierAlternatives.map((alternative, index) => (
+                    <li key={index} className="flex items-center">
+                      <span className="mr-2">💡</span>
+                      {alternative}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500 italic">No healthier alternatives provided.</p>
+              )}
+            </div>
           </div>
         </div>
-  
-        {/* Positive Aspects */}
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">What's Good?</h3>
-          {positiveAspects.length > 0 ? (
-            <ul className="list-disc ml-6 text-green-600">
-              {positiveAspects.map((aspect, index) => (
-                <li key={index}>{aspect}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 italic">No positive aspects identified.</p>
-          )}
-        </div>
-  
-        {/* Negative Aspects */}
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">What's Bad?</h3>
-          {negativeAspects.length > 0 ? (
-            <ul className="list-disc ml-6 text-red-600">
-              {negativeAspects.map((aspect, index) => (
-                <li key={index}>{aspect}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 italic">No negative aspects identified.</p>
-          )}
-        </div>
-  
-        {/* Healthier Alternatives */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-800">Healthier Alternatives</h3>
-          {healthierAlternatives.length > 0 ? (
-            <ul className="list-disc ml-6 text-blue-600">
-              {healthierAlternatives.map((alternative, index) => (
-                <li key={index}>{alternative}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 italic">No healthier alternatives provided.</p>
-          )}
-        </div>
-      </div>
-    );
+      );
   }
   
   
