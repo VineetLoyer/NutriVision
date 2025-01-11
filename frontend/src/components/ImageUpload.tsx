@@ -53,9 +53,9 @@ export default function ImageUpload() {
     const image = e.currentTarget as HTMLImageElement;
     setCrop({
       unit: 'px',
-      width: image.naturalWidth * 0.8, // Default to 80% of width
-      height: image.naturalHeight * 0.8, // Default to 80% of height
-      x: image.naturalWidth * 0.1, // Center the crop
+      width: image.naturalWidth * 0.8, 
+      height: image.naturalHeight * 0.8, 
+      x: image.naturalWidth * 0.1, 
       y: image.naturalHeight * 0.1,
     });
   }, []);
@@ -173,10 +173,10 @@ export default function ImageUpload() {
             <div
               className={`text-6xl font-extrabold ${
                 Number(healthScore) <= 40
-                  ? 'text-red-600' // Red for scores <=40
+                  ? 'text-red-600' 
                   : Number(healthScore) <= 70
-                  ? 'text-yellow-500' // Yellow for scores between 41-70
-                  : 'text-green-600' // Green for scores >70
+                  ? 'text-yellow-500' 
+                  : 'text-green-600' 
               }`}
             >
               {Number(healthScore) || 'N/A'}
