@@ -201,7 +201,7 @@ export default function ImageUpload() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500 italic">No positive aspects identified.</p>
+                <p className="text-gray-500 italic">No Positive Aspects Identified.</p>
               )}
             </div>
       
@@ -218,7 +218,7 @@ export default function ImageUpload() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500 italic">No negative aspects identified.</p>
+                <p className="text-gray-500 italic">No Negative Aspects Identified.</p>
               )}
             </div>
       
@@ -235,7 +235,7 @@ export default function ImageUpload() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500 italic">No healthier alternatives provided.</p>
+                <p className="text-gray-500 italic">No Healthier Alternatives Provided.</p>
               )}
             </div>
           </div>
