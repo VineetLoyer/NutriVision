@@ -50,8 +50,29 @@ export default function ImageUpload() {
   };
 
   const onImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { width, height } = e.currentTarget;
-    setCrop({ unit: '%', width: 90, height: 90, x: 5, y: 5 });
+    const image = e.currentTarget as HTMLImageElement;
+    const aspectRatio = image.naturalWidth / image.naturalHeight;
+  
+    // Set crop dimensions dynamically based on the image's aspect ratio
+    if (aspectRatio > 1) {
+      // For wide images, keep height smaller and adjust width
+      setCrop({
+        unit: 'px',
+        width: image.naturalWidth * 0.8,
+        height: image.naturalHeight * 0.5,
+        x: (image.naturalWidth * 0.2) / 2,
+        y: (image.naturalHeight * 0.5) / 2,
+      });
+    } else {
+      // For tall images, keep width smaller and adjust height
+      setCrop({
+        unit: 'px',
+        width: image.naturalWidth * 0.5,
+        height: image.naturalHeight * 0.8,
+        x: (image.naturalWidth * 0.5) / 2,
+        y: (image.naturalHeight * 0.2) / 2,
+      });
+    }
   }, []);
 
   const getCroppedImg = useCallback((image: HTMLImageElement, crop: PixelCrop) => {
