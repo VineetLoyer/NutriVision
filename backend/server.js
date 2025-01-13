@@ -107,12 +107,15 @@ app.post('/analyze-label', upload.single('image'), async (req, res) => {
     }
 });
 
-// Start the server
 const PORT = process.env.PORT || 3001;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://nutri-vision-kappa.vercel.app/';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://nutri-vision-kappa.vercel.app';
 
 app.use(cors({
-    origin: CORS_ORIGIN,
+    origin: [
+        CORS_ORIGIN,
+        'https://nutri-vision-kappa.vercel.app',
+        'http://localhost:3000'
+      ],
     methods: ['GET', 'POST'],
     credentials: true
   }));
