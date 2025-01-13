@@ -53,9 +53,9 @@ export default function ImageUpload() {
     const image = e.currentTarget as HTMLImageElement;
     setCrop({
       unit: 'px',
-      width: image.naturalWidth * 0.8, 
-      height: image.naturalHeight * 0.8, 
-      x: image.naturalWidth * 0.1, 
+      width: image.naturalWidth * 0.8, // Default to 80% of width
+      height: image.naturalHeight * 0.8, // Default to 80% of height
+      x: image.naturalWidth * 0.1, // Center the crop
       y: image.naturalHeight * 0.1,
     });
   }, []);
@@ -142,28 +142,54 @@ export default function ImageUpload() {
   
   function AnalysisDisplay({ analysisResult }: { analysisResult: string | null }) {
     if (!analysisResult) return null;
-  
-    // Split lines and clean up any empty or extra spaces
-    const lines = analysisResult.split('\n').map((line) => line.trim()).filter((line) => line !== '');
-  
+
+    // Split the response into lines and clean up
+    const lines = analysisResult.split('\n').map(line => line.trim()).filter(Boolean);
+    
     // Extract health score
-    const healthScore = lines.find((line) => line.startsWith('1. Health Score:'))?.replace('1. Health Score:', '').trim() || "N/A";
-  
-    // Extract indices for sections
-    const positiveIndex = lines.findIndex((line) => line.startsWith('2. Positive Aspects:'));
-    const negativeIndex = lines.findIndex((line) => line.startsWith('3. Negative Aspects:'));
-    const alternativesIndex = lines.findIndex((line) => line.startsWith('4. Suggestions for Healthier Alternatives:'));
-  
-    // Extract section contents safely
-    const positiveAspects = positiveIndex !== -1 && negativeIndex !== -1
-      ? lines.slice(positiveIndex + 1, negativeIndex)
-      : [];
-    const negativeAspects = negativeIndex !== -1 && alternativesIndex !== -1
-      ? lines.slice(negativeIndex + 1, alternativesIndex)
-      : [];
-    const healthierAlternatives = alternativesIndex !== -1
-      ? lines.slice(alternativesIndex + 1)
-      : [];
+    const healthScoreLine = lines.find(line => /^\d+\.\s*Health Score:/.test(line));
+    const healthScore = healthScoreLine 
+      ? healthScoreLine.split(':')[1].trim().replace('/100', '')
+      : 'N/A';
+
+    // Helper function to extract section content
+    const extractSection = (startMarker, endMarkers) => {
+      // Find the start of the section
+      const startIdx = lines.findIndex(line => 
+        line.match(new RegExp(`^\\d+\\.\\s*${startMarker}:`))
+      );
+    
+    if (startIdx === -1) return [];
+    
+    // Find the end of the section (start of next section)
+    const endIdx = endMarkers.reduce((closest, marker) => {
+      const idx = lines.findIndex((line, i) => 
+        i > startIdx && line.match(new RegExp(`^\\d+\\.\\s*${marker}:`))
+      );
+      return idx !== -1 && (closest === -1 || idx < closest) ? idx : closest;
+    }, -1);
+
+    // Filter lines that are actual content (starting with dash)
+    const sectionContent = lines
+      .slice(startIdx + 1, endIdx === -1 ? undefined : endIdx)
+      .filter(line => line.trim().startsWith('-'))
+      .map(line => line.substring(line.indexOf('-') + 1).trim());
+
+    return sectionContent;
+  };
+
+  // Extract each section with appropriate markers
+  const positiveAspects = extractSection('Positive Aspects', ['Negative Aspects', 'Healthier Alternatives']);
+  const negativeAspects = extractSection('Negative Aspects', ['Healthier Alternatives']);
+  const healthierAlternatives = extractSection('Healthier Alternatives', []);
+
+  // Filter helper alternatives from negative aspects if they got mixed
+  const cleanNegativeAspects = negativeAspects.filter(aspect => 
+    !aspect.toLowerCase().includes('look for') && 
+    !aspect.toLowerCase().includes('consider') &&
+    !aspect.toLowerCase().includes('choose') &&
+    !aspect.toLowerCase().includes('opt for')
+  );
   
       return (
         <div className="bg-white shadow-lg rounded-lg p-6 mt-6 border border-gray-300">
@@ -173,10 +199,10 @@ export default function ImageUpload() {
             <div
               className={`text-6xl font-extrabold ${
                 Number(healthScore) <= 40
-                  ? 'text-red-600' 
+                  ? 'text-red-600' // Red for scores <=40
                   : Number(healthScore) <= 70
-                  ? 'text-yellow-500' 
-                  : 'text-green-600' 
+                  ? 'text-yellow-500' // Yellow for scores between 41-70
+                  : 'text-green-600' // Green for scores >70
               }`}
             >
               {Number(healthScore) || 'N/A'}
@@ -201,7 +227,7 @@ export default function ImageUpload() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500 italic">No Positive Aspects Identified.</p>
+                <p className="text-gray-500 italic">No positive aspects identified.</p>
               )}
             </div>
       
@@ -218,7 +244,7 @@ export default function ImageUpload() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500 italic">No Negative Aspects Identified.</p>
+                <p className="text-gray-500 italic">No negative aspects identified.</p>
               )}
             </div>
       
@@ -235,7 +261,7 @@ export default function ImageUpload() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-gray-500 italic">No Healthier Alternatives Provided.</p>
+                <p className="text-gray-500 italic">No healthier alternatives.</p>
               )}
             </div>
           </div>

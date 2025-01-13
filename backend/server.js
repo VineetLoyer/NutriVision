@@ -46,30 +46,34 @@ app.post('/analyze-label', upload.single('image'), async (req, res) => {
         // Extract text from the Textract result
         const extractedText = extractTextFromTextract(textractResult);
         console.log('Extracted Text:', extractedText);
-
-        const gptPrompt = `
+        const gptPrompt = (extractedText) => `
         Analyze the following text for nutritional information or ingredient insights:
         ${extractedText}
 
-        Scoring Metric:
-        - Assign a health score from 0 to 100.
-        - +10 points for low sugar (≤5g per serving).
-        - -10 points for high sodium (>150mg per serving).
-        - +10 points for high dietary fiber (>3g per serving).
-        - -10 points for high saturated fat (>1g per serving).
-        - +10 points if the product uses only natural ingredients (no artificial additives).
-        - -10 points if the ingredients include high-fructose corn syrup, trans fats, or excessive preservatives.
+        Scoring Guidelines:
+        - Provide the health score in EXACTLY this format: "Health Score: X" (where X is a number from 0-100, with no suffix)
+        - Base score starts at 60, then adjust according to:
+        +10: Low sugar (≤5g per serving)
+        -10: High sodium (>150mg per serving)
+        +10: High fiber (>3g per serving)
+        -10: High saturated fat (>1g per serving)
+        +10: Natural ingredients only
+        -10: Contains HFCS/trans fats/excessive preservatives
 
-        If only ingredients are provided:
-        - Identify potential harmful ingredients and their impact.
-        - Highlight positive aspects like natural or organic ingredients.
-        - Provide a health score (0-100) based on the above rules.
+        Required Format:
+        1. Health Score: [number]
+        2. Positive Aspects:
+        - [bullet points starting with dash]
+        3. Negative Aspects:
+        - [bullet points starting with dash]
+        4. Healthier Alternatives:
+        - [bullet points starting with dash]
 
-        Analysis Tasks:
-        1. Provide a health score (0-100).
-        2. Highlight positive aspects (e.g., low sugar, high fiber, natural ingredients).
-        3. Highlight negative aspects (e.g., high sodium, trans fats, artificial additives).
-        4. Suggest healthier alternatives if applicable.
+        Rules:
+        - Always start with "1. Health Score: " followed by just the number
+        - Use bullet points with dashes (-) for all lists
+        - Keep responses focused and concise
+        - Organize information in exactly these sections
         `;
 
         const gptResponse = await axios.post(
@@ -77,12 +81,14 @@ app.post('/analyze-label', upload.single('image'), async (req, res) => {
             {
                 model: 'gpt-3.5-turbo',
                 messages: [
-                    { role: 'system', content: 'You are a precise and consistent assistant that performs nutritional and ingredient analysis with detailed, unbiased scoring.' },
-                    { role: 'user', content: gptPrompt }
+                    { role: 'system', 
+                      content: 'You are a nutrition analyst. Always format health scores as plain numbers without suffixes or ranges.' },
+                    { role: 'user', content: gptPrompt(extractedText) }
                 ],
                 max_tokens: 700,
-                temperature: 0.2,
-                top_p: 1,
+                temperature: 0.1,
+                presence_penalty:-0.1,
+                frequency_penalty: 0.1,
             },
             {
                 headers: {
@@ -103,6 +109,14 @@ app.post('/analyze-label', upload.single('image'), async (req, res) => {
 
 // Start the server
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'https://nutri-vision-kappa.vercel.app/';
+
+app.use(cors({
+    origin: CORS_ORIGIN,
+    methods: ['GET', 'POST'],
+    credentials: true
+  }));
+  
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
