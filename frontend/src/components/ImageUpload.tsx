@@ -110,9 +110,16 @@ export default function ImageUpload() {
   
         formData.append('image', blob);
   
-        const result = await fetch('http://localhost:3001/analyze-label', {
+        console.log('API URL:', process.env.NEXT_PUBLIC_API_URL);
+
+        const result = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/analyze-label`, {
           method: 'POST',
           body: formData,
+          headers: {
+            'Accept': 'application/json',
+          },
+          mode: 'cors',
+          credentials: 'include'
         });
         console.log('Response:', result);
         const json = await result.json();
