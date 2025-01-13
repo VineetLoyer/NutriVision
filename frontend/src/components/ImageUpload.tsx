@@ -191,7 +191,6 @@ export default function ImageUpload() {
     !aspect.toLowerCase().includes('opt for')
   );
   
-  
       return (
         <div className="bg-white shadow-lg rounded-lg p-6 mt-6 border border-gray-300">
           {/* Health Score */}

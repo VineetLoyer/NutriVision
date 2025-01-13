@@ -46,7 +46,6 @@ app.post('/analyze-label', upload.single('image'), async (req, res) => {
         // Extract text from the Textract result
         const extractedText = extractTextFromTextract(textractResult);
         console.log('Extracted Text:', extractedText);
-
         const gptPrompt = (extractedText) => `
         Analyze the following text for nutritional information or ingredient insights:
         ${extractedText}
@@ -90,7 +89,6 @@ app.post('/analyze-label', upload.single('image'), async (req, res) => {
                 temperature: 0.1,
                 presence_penalty:-0.1,
                 frequency_penalty: 0.1,
-            
             },
             {
                 headers: {
