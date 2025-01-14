@@ -119,7 +119,7 @@ export default function ImageUpload() {
             'Accept': 'application/json',
           },
           mode: 'cors',
-          credentials: 'include'
+          credentials: 'omit'
         });
         console.log('Response:', result);
         const json = await result.json();
@@ -140,11 +140,26 @@ export default function ImageUpload() {
   
   
   const reset = () => {
+    // Reset all state variables
     setSelectedImage(null);
     setCroppedImage(null);
     setAnalysisResult(null);
     setIsUploaded(false);
     setShowCamera(false);
+    setLoading(false);
+    // Also reset crop states
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+    
+    // Reset file input if it exists
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    
+    // Reset image ref
+    if (imageRef.current) {
+      imageRef.current.src = '';
+    }
   };
   
   function AnalysisDisplay({ analysisResult }: { analysisResult: string | null }) {
