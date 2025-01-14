@@ -117,7 +117,7 @@ app.use(cors({
         'http://localhost:3000'
       ],
     methods: ['GET', 'POST'],
-    credentials: true
+    credentials: false
   }));
   
   app.listen(PORT, () => {
